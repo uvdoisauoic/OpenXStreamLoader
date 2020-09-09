@@ -10,6 +10,7 @@ namespace OpenXStreamLoader
     {
         public string _streamlinkExePath;
         public string _defaultRecordsPath;
+        public string _streamlinkOptions;
         public string _browserPath;
         public int _httpRequestDelay;
         public int _favoritesUpdateInterval;

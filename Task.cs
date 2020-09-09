@@ -38,10 +38,13 @@ namespace OpenXStreamLoader
         public delegate void CheckOnlineCallback(string url);
         public delegate string GetFinalFileNameFromTemplate(string fileNameTemplate);
 
+        private readonly object _consoleLock = new object();
+
         private string _url;
         private string _quality;
         private bool _performOnlineCheck;
         private string _executablePath;
+        private string _streamlinkOptions;
         private string _outputFileNameTemplate;
         private string _fileName;
         private Process _process;
@@ -54,12 +57,13 @@ namespace OpenXStreamLoader
         private Status _status;
         private bool _processExiting = false;
 
-        public Task(string url, string quality, bool performOnlineCheck, string executablePath, string outputFileNameTemplate, StatusChangedCallback statusChanged, CheckOnlineCallback checkOnline, GetFinalFileNameFromTemplate getFinalFileNameFromTemplate, int waitingTaskInterval)
+        public Task(string url, string quality, bool performOnlineCheck, string executablePath, string streamlinkOptions, string outputFileNameTemplate, StatusChangedCallback statusChanged, CheckOnlineCallback checkOnline, GetFinalFileNameFromTemplate getFinalFileNameFromTemplate, int waitingTaskInterval)
         {
             _url = url;
             _quality = quality;
             _performOnlineCheck = performOnlineCheck;
             _executablePath = executablePath;
+            _streamlinkOptions = streamlinkOptions;
             _outputFileNameTemplate = outputFileNameTemplate;
             _statusChanged = statusChanged;
             _checkOnline = checkOnline;
@@ -95,7 +99,7 @@ namespace OpenXStreamLoader
         {
             try
             {
-                if (!_process.HasExited)
+                if (_process != null && !_process.HasExited)
                 {
                     return;
                 }
@@ -104,7 +108,7 @@ namespace OpenXStreamLoader
             {
 
             }
-            
+
             startProcess();
         }
 
@@ -122,8 +126,9 @@ namespace OpenXStreamLoader
             _fileName = _getFinalFileNameFromTemplate(_outputFileNameTemplate);
             _status.FileName = _fileName;
             _status.Created = DateTime.Now;
+            _status.FileSize = -1;
             _status.ConsoleOutput = "";
-            _process.StartInfo.Arguments = " --hds-segment-threads 10 --hls-segment-threads 10 -o \"" + _fileName + "\" -f " + _url + " " + _quality;
+            _process.StartInfo.Arguments = " " + _streamlinkOptions + " -o \"" + _fileName + "\" -f " + _url + " " + _quality;
 
             try
             {
@@ -148,7 +153,7 @@ namespace OpenXStreamLoader
 
             try
             {
-                if (_process.HasExited)
+                if (_process == null || _process.HasExited)
                 {
                     return;
                 }
@@ -158,49 +163,56 @@ namespace OpenXStreamLoader
                 return;
             }
 
+            lock (_consoleLock)
+            {
+                try
+                {
+                    var id = _process.Id;
+
+                    if (id == 0)
+                    {
+                        return;
+                    }
+
+                    //Didn't work (main process shut down itself occasionally):
+                    //https://stackoverflow.com/questions/2055753/how-to-gracefully-terminate-a-process
+                    //https://github.com/gapotchenko/Gapotchenko.FX/blob/1accd5c03a310a925939ee55a9bd3055dadb4baa/Source/Gapotchenko.FX.Diagnostics.Process/ProcessExtensions.End.cs#L247-L328
+
+                    Utils.killProcessTree(id);
+                }
+                catch (Exception)
+                {
+
+                }
+            }
+
             try
             {
-                var id = _process.Id;
-
-                if (id == 0)
-                {
-                    return;
-                }
-
-                //https://stackoverflow.com/questions/2055753/how-to-gracefully-terminate-a-process
-                //https://github.com/gapotchenko/Gapotchenko.FX/blob/1accd5c03a310a925939ee55a9bd3055dadb4baa/Source/Gapotchenko.FX.Diagnostics.Process/ProcessExtensions.End.cs#L247-L328
-
-                if (!Native.AttachConsole(id))
-                {
-                    return;
-                }
-
-                if (!Native.SetConsoleCtrlHandler(null, true))
-                {
-                    return;
-                }
-
-                Native.GenerateConsoleCtrlEvent(Native.CTRL_C_EVENT, 0);
+                _process.Dispose();
             }
-            finally
+            catch (Exception)
             {
-                Native.FreeConsole();
-                Native.SetConsoleCtrlHandler(null, false);
+
             }
 
             _process = null;
         }
 
+        private void printdebug(string mes)
+        {
+            System.Diagnostics.Debug.WriteLine(mes);
+        }
+
         private void onProcessExited(object sender, System.EventArgs e)
         {
-            if(_processExiting)
+            if (_processExiting)
             {
                 return;
             }
 
             _statusCheckTimer.Enabled = false;
 
-            if(playableStreamFound() && !streamSupportsQuality())
+            if (playableStreamFound() && !streamSupportsQuality())
             {
                 _status.State = TaskState.StartProcessError;
             }
@@ -241,11 +253,16 @@ namespace OpenXStreamLoader
 
         private long getFileSize()
         {
+            if (!File.Exists(_fileName))
+            {
+                return -1;
+            }
+
             try
             {
                 return new FileInfo(_fileName).Length;
             }
-            catch(Exception)
+            catch (Exception)
             {
                 return -1;
             }

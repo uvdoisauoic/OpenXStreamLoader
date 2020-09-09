@@ -70,16 +70,22 @@
             this.cmFavorites = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.openInBrowserToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.startRecordToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.copyURLToClipboardToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.showImageorHoverWithCtrlPressedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.deleteFavToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.updateThisToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.updateNowToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.ilFavImages = new System.Windows.Forms.ImageList(this.components);
             this.tabPage3 = new System.Windows.Forms.TabPage();
+            this.lbStreamlinkOnlineHelp = new System.Windows.Forms.LinkLabel();
+            this.label22 = new System.Windows.Forms.Label();
+            this.btStreamlinkDefaultOptions = new System.Windows.Forms.Button();
+            this.tbStreamlinkOptions = new System.Windows.Forms.TextBox();
             this.label21 = new System.Windows.Forms.Label();
             this.nuWaitingTaskInterval = new System.Windows.Forms.NumericUpDown();
             this.label20 = new System.Windows.Forms.Label();
             this.label18 = new System.Windows.Forms.Label();
             this.nuFavoritesUpdateInterval = new System.Windows.Forms.NumericUpDown();
-            this.label17 = new System.Windows.Forms.Label();
             this.label16 = new System.Windows.Forms.Label();
             this.label15 = new System.Windows.Forms.Label();
             this.nuHttpRequestDelay = new System.Windows.Forms.NumericUpDown();
@@ -98,14 +104,20 @@
             this.tbStreamlinkExePath = new System.Windows.Forms.TextBox();
             this.label5 = new System.Windows.Forms.Label();
             this.tabPage4 = new System.Windows.Forms.TabPage();
-            this.linkLabel1 = new System.Windows.Forms.LinkLabel();
+            this.lbVersionInfo = new System.Windows.Forms.Label();
+            this.label23 = new System.Windows.Forms.Label();
             this.label12 = new System.Windows.Forms.Label();
+            this.lbReleases = new System.Windows.Forms.LinkLabel();
+            this.lbProductPage = new System.Windows.Forms.LinkLabel();
+            this.lbVersion = new System.Windows.Forms.Label();
             this.label11 = new System.Windows.Forms.Label();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.openStreamlinkExeDialog = new System.Windows.Forms.OpenFileDialog();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.tmrFavoritesStatusCheck = new System.Windows.Forms.Timer(this.components);
+            this.tmrCheckForNewVersion = new System.Windows.Forms.Timer(this.components);
+            this.ilProfilePictures = new System.Windows.Forms.ImageList(this.components);
             this.tabsControl.SuspendLayout();
             this.tpRecord.SuspendLayout();
             this.panel1.SuspendLayout();
@@ -132,7 +144,7 @@
             this.tabsControl.Location = new System.Drawing.Point(0, 0);
             this.tabsControl.Name = "tabsControl";
             this.tabsControl.SelectedIndex = 0;
-            this.tabsControl.Size = new System.Drawing.Size(753, 425);
+            this.tabsControl.Size = new System.Drawing.Size(803, 545);
             this.tabsControl.TabIndex = 0;
             // 
             // tpRecord
@@ -142,7 +154,7 @@
             this.tpRecord.Location = new System.Drawing.Point(4, 22);
             this.tpRecord.Name = "tpRecord";
             this.tpRecord.Padding = new System.Windows.Forms.Padding(3);
-            this.tpRecord.Size = new System.Drawing.Size(745, 399);
+            this.tpRecord.Size = new System.Drawing.Size(795, 519);
             this.tpRecord.TabIndex = 0;
             this.tpRecord.Text = "Record";
             this.tpRecord.UseVisualStyleBackColor = true;
@@ -166,7 +178,7 @@
             this.panel1.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel1.Location = new System.Drawing.Point(3, 3);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(739, 102);
+            this.panel1.Size = new System.Drawing.Size(789, 102);
             this.panel1.TabIndex = 14;
             // 
             // label19
@@ -186,7 +198,7 @@
             this.tbFinalFileName.Location = new System.Drawing.Point(131, 82);
             this.tbFinalFileName.Name = "tbFinalFileName";
             this.tbFinalFileName.ReadOnly = true;
-            this.tbFinalFileName.Size = new System.Drawing.Size(603, 13);
+            this.tbFinalFileName.Size = new System.Drawing.Size(653, 13);
             this.tbFinalFileName.TabIndex = 15;
             // 
             // label1
@@ -343,7 +355,7 @@
             this.lvTasks.Location = new System.Drawing.Point(3, 111);
             this.lvTasks.MultiSelect = false;
             this.lvTasks.Name = "lvTasks";
-            this.lvTasks.Size = new System.Drawing.Size(739, 285);
+            this.lvTasks.Size = new System.Drawing.Size(789, 405);
             this.lvTasks.TabIndex = 10;
             this.lvTasks.UseCompatibleStateImageBehavior = false;
             this.lvTasks.View = System.Windows.Forms.View.Details;
@@ -372,10 +384,12 @@
             // columnHeader8
             // 
             this.columnHeader8.Text = "Duration";
+            this.columnHeader8.Width = 63;
             // 
             // columnHeader5
             // 
             this.columnHeader5.Text = "File size";
+            this.columnHeader5.Width = 70;
             // 
             // columnHeader6
             // 
@@ -429,7 +443,7 @@
             // 
             this.copyURLToInputFieldToolStripMenuItem.Name = "copyURLToInputFieldToolStripMenuItem";
             this.copyURLToInputFieldToolStripMenuItem.Size = new System.Drawing.Size(201, 22);
-            this.copyURLToInputFieldToolStripMenuItem.Text = "Copy URL to input field";
+            this.copyURLToInputFieldToolStripMenuItem.Text = "Copy URL to clipboard";
             this.copyURLToInputFieldToolStripMenuItem.Click += new System.EventHandler(this.copyURLToInputFieldToolStripMenuItem_Click);
             // 
             // deleteToolStripMenuItem
@@ -452,7 +466,7 @@
             this.tabPage2.Location = new System.Drawing.Point(4, 22);
             this.tabPage2.Name = "tabPage2";
             this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage2.Size = new System.Drawing.Size(745, 399);
+            this.tabPage2.Size = new System.Drawing.Size(795, 519);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "Favorites";
             this.tabPage2.UseVisualStyleBackColor = true;
@@ -468,13 +482,16 @@
             this.lvFavorites.FullRowSelect = true;
             this.lvFavorites.GridLines = true;
             this.lvFavorites.HideSelection = false;
+            this.lvFavorites.LargeImageList = this.ilFavImages;
             this.lvFavorites.Location = new System.Drawing.Point(3, 3);
             this.lvFavorites.MultiSelect = false;
             this.lvFavorites.Name = "lvFavorites";
-            this.lvFavorites.Size = new System.Drawing.Size(739, 393);
+            this.lvFavorites.Size = new System.Drawing.Size(789, 513);
             this.lvFavorites.TabIndex = 11;
+            this.lvFavorites.TileSize = new System.Drawing.Size(360, 270);
             this.lvFavorites.UseCompatibleStateImageBehavior = false;
-            this.lvFavorites.View = System.Windows.Forms.View.Details;
+            this.lvFavorites.KeyDown += new System.Windows.Forms.KeyEventHandler(this.lvFavorites_KeyDown);
+            this.lvFavorites.KeyUp += new System.Windows.Forms.KeyEventHandler(this.lvFavorites_KeyUp);
             this.lvFavorites.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.lvFavorites_MouseDoubleClick);
             // 
             // columnHeader3
@@ -492,18 +509,20 @@
             this.cmFavorites.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.openInBrowserToolStripMenuItem,
             this.startRecordToolStripMenuItem,
+            this.copyURLToClipboardToolStripMenuItem,
+            this.showImageorHoverWithCtrlPressedToolStripMenuItem,
             this.deleteFavToolStripMenuItem,
             this.updateThisToolStripMenuItem,
             this.updateNowToolStripMenuItem});
             this.cmFavorites.Name = "cmFavorites";
-            this.cmFavorites.Size = new System.Drawing.Size(191, 114);
+            this.cmFavorites.Size = new System.Drawing.Size(264, 158);
             this.cmFavorites.Opening += new System.ComponentModel.CancelEventHandler(this.cmFavorites_Opening);
             // 
             // openInBrowserToolStripMenuItem
             // 
             this.openInBrowserToolStripMenuItem.Font = new System.Drawing.Font("Tahoma", 8.25F, System.Drawing.FontStyle.Bold);
             this.openInBrowserToolStripMenuItem.Name = "openInBrowserToolStripMenuItem";
-            this.openInBrowserToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
+            this.openInBrowserToolStripMenuItem.Size = new System.Drawing.Size(263, 22);
             this.openInBrowserToolStripMenuItem.Text = "Open URL in browser";
             this.openInBrowserToolStripMenuItem.Click += new System.EventHandler(this.openInBrowserToolStripMenuItem_Click);
             // 
@@ -511,39 +530,65 @@
             // 
             this.startRecordToolStripMenuItem.Font = new System.Drawing.Font("Tahoma", 8.25F);
             this.startRecordToolStripMenuItem.Name = "startRecordToolStripMenuItem";
-            this.startRecordToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
+            this.startRecordToolStripMenuItem.Size = new System.Drawing.Size(263, 22);
             this.startRecordToolStripMenuItem.Text = "Start record";
             this.startRecordToolStripMenuItem.Click += new System.EventHandler(this.startRecordToolStripMenuItem_Click);
+            // 
+            // copyURLToClipboardToolStripMenuItem
+            // 
+            this.copyURLToClipboardToolStripMenuItem.Name = "copyURLToClipboardToolStripMenuItem";
+            this.copyURLToClipboardToolStripMenuItem.Size = new System.Drawing.Size(263, 22);
+            this.copyURLToClipboardToolStripMenuItem.Text = "Copy URL to clipboard";
+            this.copyURLToClipboardToolStripMenuItem.Click += new System.EventHandler(this.copyURLToClipboardToolStripMenuItem_Click);
+            // 
+            // showImageorHoverWithCtrlPressedToolStripMenuItem
+            // 
+            this.showImageorHoverWithCtrlPressedToolStripMenuItem.Name = "showImageorHoverWithCtrlPressedToolStripMenuItem";
+            this.showImageorHoverWithCtrlPressedToolStripMenuItem.Size = new System.Drawing.Size(263, 22);
+            this.showImageorHoverWithCtrlPressedToolStripMenuItem.Text = "Show profile image (pess Ctrl to see all)";
+            this.showImageorHoverWithCtrlPressedToolStripMenuItem.Click += new System.EventHandler(this.showImageorHoverWithCtrlPressedToolStripMenuItem_Click);
             // 
             // deleteFavToolStripMenuItem
             // 
             this.deleteFavToolStripMenuItem.Name = "deleteFavToolStripMenuItem";
-            this.deleteFavToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
+            this.deleteFavToolStripMenuItem.Size = new System.Drawing.Size(263, 22);
             this.deleteFavToolStripMenuItem.Text = "Delete";
             this.deleteFavToolStripMenuItem.Click += new System.EventHandler(this.deleteFavToolStripMenuItem_Click);
             // 
             // updateThisToolStripMenuItem
             // 
             this.updateThisToolStripMenuItem.Name = "updateThisToolStripMenuItem";
-            this.updateThisToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
+            this.updateThisToolStripMenuItem.Size = new System.Drawing.Size(263, 22);
             this.updateThisToolStripMenuItem.Text = "Update this";
             this.updateThisToolStripMenuItem.Click += new System.EventHandler(this.updateThisToolStripMenuItem_Click);
             // 
             // updateNowToolStripMenuItem
             // 
             this.updateNowToolStripMenuItem.Name = "updateNowToolStripMenuItem";
-            this.updateNowToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
+            this.updateNowToolStripMenuItem.Size = new System.Drawing.Size(263, 22);
             this.updateNowToolStripMenuItem.Text = "Update all";
             this.updateNowToolStripMenuItem.Click += new System.EventHandler(this.updateNowToolStripMenuItem_Click);
             // 
+            // ilFavImages
+            // 
+            this.ilFavImages.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("ilFavImages.ImageStream")));
+            this.ilFavImages.TransparentColor = System.Drawing.Color.Transparent;
+            this.ilFavImages.Images.SetKeyName(0, "Checking");
+            this.ilFavImages.Images.SetKeyName(1, "HttpError");
+            this.ilFavImages.Images.SetKeyName(2, "unknown");
+            this.ilFavImages.Images.SetKeyName(3, "offline");
+            // 
             // tabPage3
             // 
+            this.tabPage3.Controls.Add(this.lbStreamlinkOnlineHelp);
+            this.tabPage3.Controls.Add(this.label22);
+            this.tabPage3.Controls.Add(this.btStreamlinkDefaultOptions);
+            this.tabPage3.Controls.Add(this.tbStreamlinkOptions);
             this.tabPage3.Controls.Add(this.label21);
             this.tabPage3.Controls.Add(this.nuWaitingTaskInterval);
             this.tabPage3.Controls.Add(this.label20);
             this.tabPage3.Controls.Add(this.label18);
             this.tabPage3.Controls.Add(this.nuFavoritesUpdateInterval);
-            this.tabPage3.Controls.Add(this.label17);
             this.tabPage3.Controls.Add(this.label16);
             this.tabPage3.Controls.Add(this.label15);
             this.tabPage3.Controls.Add(this.nuHttpRequestDelay);
@@ -564,15 +609,54 @@
             this.tabPage3.Location = new System.Drawing.Point(4, 22);
             this.tabPage3.Name = "tabPage3";
             this.tabPage3.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage3.Size = new System.Drawing.Size(745, 399);
+            this.tabPage3.Size = new System.Drawing.Size(795, 519);
             this.tabPage3.TabIndex = 2;
             this.tabPage3.Text = "Settings";
             this.tabPage3.UseVisualStyleBackColor = true;
             // 
+            // lbStreamlinkOnlineHelp
+            // 
+            this.lbStreamlinkOnlineHelp.AutoSize = true;
+            this.lbStreamlinkOnlineHelp.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lbStreamlinkOnlineHelp.Location = new System.Drawing.Point(110, 64);
+            this.lbStreamlinkOnlineHelp.Name = "lbStreamlinkOnlineHelp";
+            this.lbStreamlinkOnlineHelp.Size = new System.Drawing.Size(60, 13);
+            this.lbStreamlinkOnlineHelp.TabIndex = 27;
+            this.lbStreamlinkOnlineHelp.TabStop = true;
+            this.lbStreamlinkOnlineHelp.Text = "Online help";
+            this.lbStreamlinkOnlineHelp.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.lbStreamlinkOnlineHelp_LinkClicked);
+            // 
+            // label22
+            // 
+            this.label22.AutoSize = true;
+            this.label22.Location = new System.Drawing.Point(8, 64);
+            this.label22.Name = "label22";
+            this.label22.Size = new System.Drawing.Size(96, 13);
+            this.label22.TabIndex = 26;
+            this.label22.Text = "Streamlink options:";
+            // 
+            // btStreamlinkDefaultOptions
+            // 
+            this.btStreamlinkDefaultOptions.Location = new System.Drawing.Point(518, 78);
+            this.btStreamlinkDefaultOptions.Name = "btStreamlinkDefaultOptions";
+            this.btStreamlinkDefaultOptions.Size = new System.Drawing.Size(75, 23);
+            this.btStreamlinkDefaultOptions.TabIndex = 25;
+            this.btStreamlinkDefaultOptions.Text = "Reset";
+            this.btStreamlinkDefaultOptions.UseVisualStyleBackColor = true;
+            this.btStreamlinkDefaultOptions.Click += new System.EventHandler(this.btStreamlinkDefaultOptions_Click);
+            // 
+            // tbStreamlinkOptions
+            // 
+            this.tbStreamlinkOptions.Location = new System.Drawing.Point(11, 80);
+            this.tbStreamlinkOptions.Name = "tbStreamlinkOptions";
+            this.tbStreamlinkOptions.Size = new System.Drawing.Size(501, 20);
+            this.tbStreamlinkOptions.TabIndex = 24;
+            this.tbStreamlinkOptions.TextChanged += new System.EventHandler(this.tbStreamlinkOptions_TextChanged);
+            // 
             // label21
             // 
             this.label21.AutoSize = true;
-            this.label21.Location = new System.Drawing.Point(137, 356);
+            this.label21.Location = new System.Drawing.Point(137, 383);
             this.label21.Name = "label21";
             this.label21.Size = new System.Drawing.Size(42, 13);
             this.label21.TabIndex = 23;
@@ -580,7 +664,7 @@
             // 
             // nuWaitingTaskInterval
             // 
-            this.nuWaitingTaskInterval.Location = new System.Drawing.Point(11, 349);
+            this.nuWaitingTaskInterval.Location = new System.Drawing.Point(11, 376);
             this.nuWaitingTaskInterval.Maximum = new decimal(new int[] {
             360000,
             0,
@@ -604,7 +688,7 @@
             // label20
             // 
             this.label20.AutoSize = true;
-            this.label20.Location = new System.Drawing.Point(8, 332);
+            this.label20.Location = new System.Drawing.Point(8, 359);
             this.label20.Name = "label20";
             this.label20.Size = new System.Drawing.Size(447, 13);
             this.label20.TabIndex = 20;
@@ -614,7 +698,7 @@
             // label18
             // 
             this.label18.AutoSize = true;
-            this.label18.Location = new System.Drawing.Point(137, 306);
+            this.label18.Location = new System.Drawing.Point(137, 333);
             this.label18.Name = "label18";
             this.label18.Size = new System.Drawing.Size(42, 13);
             this.label18.TabIndex = 19;
@@ -622,7 +706,7 @@
             // 
             // nuFavoritesUpdateInterval
             // 
-            this.nuFavoritesUpdateInterval.Location = new System.Drawing.Point(11, 299);
+            this.nuFavoritesUpdateInterval.Location = new System.Drawing.Point(11, 326);
             this.nuFavoritesUpdateInterval.Maximum = new decimal(new int[] {
             360000,
             0,
@@ -643,28 +727,19 @@
             0});
             this.nuFavoritesUpdateInterval.ValueChanged += new System.EventHandler(this.nuFavoritesUpdateInterval_ValueChanged);
             // 
-            // label17
-            // 
-            this.label17.AutoSize = true;
-            this.label17.Location = new System.Drawing.Point(8, 283);
-            this.label17.Name = "label17";
-            this.label17.Size = new System.Drawing.Size(336, 13);
-            this.label17.TabIndex = 17;
-            this.label17.Text = "You may want to keep this non zero because of possibility of 429 error";
-            // 
             // label16
             // 
             this.label16.AutoSize = true;
-            this.label16.Location = new System.Drawing.Point(8, 268);
+            this.label16.Location = new System.Drawing.Point(8, 307);
             this.label16.Name = "label16";
-            this.label16.Size = new System.Drawing.Size(343, 13);
+            this.label16.Size = new System.Drawing.Size(346, 13);
             this.label16.TabIndex = 16;
-            this.label16.Text = "Interval between all favorites are requested to update their online status";
+            this.label16.Text = "Interval between all favorites are requested to update their online status:";
             // 
             // label15
             // 
             this.label15.AutoSize = true;
-            this.label15.Location = new System.Drawing.Point(137, 241);
+            this.label15.Location = new System.Drawing.Point(137, 280);
             this.label15.Name = "label15";
             this.label15.Size = new System.Drawing.Size(58, 13);
             this.label15.TabIndex = 15;
@@ -672,7 +747,7 @@
             // 
             // nuHttpRequestDelay
             // 
-            this.nuHttpRequestDelay.Location = new System.Drawing.Point(11, 234);
+            this.nuHttpRequestDelay.Location = new System.Drawing.Point(11, 273);
             this.nuHttpRequestDelay.Maximum = new decimal(new int[] {
             600000,
             0,
@@ -691,31 +766,31 @@
             0,
             0,
             0});
+            this.nuHttpRequestDelay.ValueChanged += new System.EventHandler(this.nuHttpRequestDelay_ValueChanged);
             // 
             // label14
             // 
             this.label14.AutoSize = true;
-            this.label14.Location = new System.Drawing.Point(8, 213);
+            this.label14.Location = new System.Drawing.Point(8, 252);
             this.label14.Name = "label14";
-            this.label14.Size = new System.Drawing.Size(473, 13);
+            this.label14.Size = new System.Drawing.Size(476, 13);
             this.label14.TabIndex = 13;
             this.label14.Text = "If it is too small you may finally get \"The remote server returned an error: (429" +
-    ") Too Many Requests\"";
+    ") Too Many Requests\".";
             // 
             // label13
             // 
             this.label13.AutoSize = true;
-            this.label13.Location = new System.Drawing.Point(8, 196);
+            this.label13.Location = new System.Drawing.Point(8, 235);
             this.label13.Name = "label13";
-            this.label13.Size = new System.Drawing.Size(494, 13);
+            this.label13.Size = new System.Drawing.Size(378, 13);
             this.label13.TabIndex = 12;
-            this.label13.Text = "Interval between each individual request to server (during online status check). " +
-    "Takes effect on startup.";
+            this.label13.Text = "Interval between each individual request to server (during online status check).";
             // 
             // label10
             // 
             this.label10.AutoSize = true;
-            this.label10.Location = new System.Drawing.Point(8, 148);
+            this.label10.Location = new System.Drawing.Point(8, 187);
             this.label10.Name = "label10";
             this.label10.Size = new System.Drawing.Size(229, 13);
             this.label10.TabIndex = 11;
@@ -733,7 +808,7 @@
             // label8
             // 
             this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(8, 131);
+            this.label8.Location = new System.Drawing.Point(8, 170);
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(193, 13);
             this.label8.TabIndex = 9;
@@ -741,7 +816,7 @@
             // 
             // btChooseBrowserPath
             // 
-            this.btChooseBrowserPath.Location = new System.Drawing.Point(518, 162);
+            this.btChooseBrowserPath.Location = new System.Drawing.Point(518, 201);
             this.btChooseBrowserPath.Name = "btChooseBrowserPath";
             this.btChooseBrowserPath.Size = new System.Drawing.Size(75, 24);
             this.btChooseBrowserPath.TabIndex = 8;
@@ -751,7 +826,7 @@
             // 
             // tbBrowserPath
             // 
-            this.tbBrowserPath.Location = new System.Drawing.Point(11, 164);
+            this.tbBrowserPath.Location = new System.Drawing.Point(11, 203);
             this.tbBrowserPath.Name = "tbBrowserPath";
             this.tbBrowserPath.Size = new System.Drawing.Size(501, 20);
             this.tbBrowserPath.TabIndex = 7;
@@ -760,7 +835,7 @@
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(8, 115);
+            this.label7.Location = new System.Drawing.Point(8, 154);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(478, 13);
             this.label7.TabIndex = 6;
@@ -769,7 +844,7 @@
             // 
             // btChooseDefaultRecordsPath
             // 
-            this.btChooseDefaultRecordsPath.Location = new System.Drawing.Point(518, 81);
+            this.btChooseDefaultRecordsPath.Location = new System.Drawing.Point(518, 120);
             this.btChooseDefaultRecordsPath.Name = "btChooseDefaultRecordsPath";
             this.btChooseDefaultRecordsPath.Size = new System.Drawing.Size(75, 24);
             this.btChooseDefaultRecordsPath.TabIndex = 5;
@@ -779,7 +854,7 @@
             // 
             // tbDefaultRecordsPath
             // 
-            this.tbDefaultRecordsPath.Location = new System.Drawing.Point(11, 83);
+            this.tbDefaultRecordsPath.Location = new System.Drawing.Point(11, 122);
             this.tbDefaultRecordsPath.Name = "tbDefaultRecordsPath";
             this.tbDefaultRecordsPath.Size = new System.Drawing.Size(501, 20);
             this.tbDefaultRecordsPath.TabIndex = 4;
@@ -788,7 +863,7 @@
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(8, 67);
+            this.label6.Location = new System.Drawing.Point(8, 106);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(364, 13);
             this.label6.TabIndex = 3;
@@ -823,45 +898,91 @@
             // 
             // tabPage4
             // 
-            this.tabPage4.Controls.Add(this.linkLabel1);
+            this.tabPage4.Controls.Add(this.lbVersionInfo);
+            this.tabPage4.Controls.Add(this.label23);
             this.tabPage4.Controls.Add(this.label12);
+            this.tabPage4.Controls.Add(this.lbReleases);
+            this.tabPage4.Controls.Add(this.lbProductPage);
+            this.tabPage4.Controls.Add(this.lbVersion);
             this.tabPage4.Controls.Add(this.label11);
             this.tabPage4.Controls.Add(this.pictureBox1);
             this.tabPage4.Location = new System.Drawing.Point(4, 22);
             this.tabPage4.Name = "tabPage4";
             this.tabPage4.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage4.Size = new System.Drawing.Size(745, 399);
+            this.tabPage4.Size = new System.Drawing.Size(795, 519);
             this.tabPage4.TabIndex = 3;
             this.tabPage4.Text = "About";
             this.tabPage4.UseVisualStyleBackColor = true;
             // 
-            // linkLabel1
+            // lbVersionInfo
             // 
-            this.linkLabel1.AutoSize = true;
-            this.linkLabel1.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.linkLabel1.Location = new System.Drawing.Point(148, 64);
-            this.linkLabel1.Name = "linkLabel1";
-            this.linkLabel1.Size = new System.Drawing.Size(319, 17);
-            this.linkLabel1.TabIndex = 3;
-            this.linkLabel1.TabStop = true;
-            this.linkLabel1.Text = "https://github.com/voidtemp/OpenXStreamLoader";
-            this.linkLabel1.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel1_LinkClicked);
+            this.lbVersionInfo.AutoSize = true;
+            this.lbVersionInfo.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lbVersionInfo.Location = new System.Drawing.Point(145, 67);
+            this.lbVersionInfo.Name = "lbVersionInfo";
+            this.lbVersionInfo.Size = new System.Drawing.Size(0, 17);
+            this.lbVersionInfo.TabIndex = 8;
+            // 
+            // label23
+            // 
+            this.label23.AutoSize = true;
+            this.label23.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label23.Location = new System.Drawing.Point(146, 114);
+            this.label23.Name = "label23";
+            this.label23.Size = new System.Drawing.Size(71, 17);
+            this.label23.TabIndex = 7;
+            this.label23.Text = "Releases:";
             // 
             // label12
             // 
             this.label12.AutoSize = true;
-            this.label12.Location = new System.Drawing.Point(145, 47);
+            this.label12.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label12.Location = new System.Drawing.Point(146, 96);
             this.label12.Name = "label12";
-            this.label12.Size = new System.Drawing.Size(107, 13);
-            this.label12.TabIndex = 2;
-            this.label12.Text = "ver 0.1, 03 Sep 2020";
+            this.label12.Size = new System.Drawing.Size(97, 17);
+            this.label12.TabIndex = 6;
+            this.label12.Text = "Product page:";
+            // 
+            // lbReleases
+            // 
+            this.lbReleases.AutoSize = true;
+            this.lbReleases.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lbReleases.Location = new System.Drawing.Point(249, 114);
+            this.lbReleases.Name = "lbReleases";
+            this.lbReleases.Size = new System.Drawing.Size(377, 17);
+            this.lbReleases.TabIndex = 4;
+            this.lbReleases.TabStop = true;
+            this.lbReleases.Text = "https://github.com/voidtemp/OpenXStreamLoader/releases";
+            this.lbReleases.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.lbReleases_LinkClicked);
+            // 
+            // lbProductPage
+            // 
+            this.lbProductPage.AutoSize = true;
+            this.lbProductPage.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lbProductPage.Location = new System.Drawing.Point(249, 96);
+            this.lbProductPage.Name = "lbProductPage";
+            this.lbProductPage.Size = new System.Drawing.Size(319, 17);
+            this.lbProductPage.TabIndex = 3;
+            this.lbProductPage.TabStop = true;
+            this.lbProductPage.Text = "https://github.com/voidtemp/OpenXStreamLoader";
+            this.lbProductPage.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.lbProductPage_LinkClicked);
+            // 
+            // lbVersion
+            // 
+            this.lbVersion.AutoSize = true;
+            this.lbVersion.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lbVersion.Location = new System.Drawing.Point(145, 47);
+            this.lbVersion.Name = "lbVersion";
+            this.lbVersion.Size = new System.Drawing.Size(34, 20);
+            this.lbVersion.TabIndex = 2;
+            this.lbVersion.Text = "ver ";
             // 
             // label11
             // 
             this.label11.AutoSize = true;
             this.label11.Font = new System.Drawing.Font("Arial", 20F, ((System.Drawing.FontStyle)((System.Drawing.FontStyle.Bold | System.Drawing.FontStyle.Italic))), System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label11.ForeColor = System.Drawing.Color.DimGray;
-            this.label11.Location = new System.Drawing.Point(142, 6);
+            this.label11.Location = new System.Drawing.Point(145, 6);
             this.label11.Name = "label11";
             this.label11.Size = new System.Drawing.Size(283, 32);
             this.label11.TabIndex = 1;
@@ -885,9 +1006,9 @@
             // 
             // statusStrip1
             // 
-            this.statusStrip1.Location = new System.Drawing.Point(0, 428);
+            this.statusStrip1.Location = new System.Drawing.Point(0, 548);
             this.statusStrip1.Name = "statusStrip1";
-            this.statusStrip1.Size = new System.Drawing.Size(753, 22);
+            this.statusStrip1.Size = new System.Drawing.Size(803, 22);
             this.statusStrip1.TabIndex = 1;
             this.statusStrip1.Text = "statusStrip1";
             // 
@@ -896,17 +1017,34 @@
             this.tmrFavoritesStatusCheck.Interval = 300000;
             this.tmrFavoritesStatusCheck.Tick += new System.EventHandler(this.tmrFavoritesStatusCheck_Tick);
             // 
+            // tmrCheckForNewVersion
+            // 
+            this.tmrCheckForNewVersion.Enabled = true;
+            this.tmrCheckForNewVersion.Interval = 5000;
+            this.tmrCheckForNewVersion.Tick += new System.EventHandler(this.tmrCheckForNewVersion_Tick);
+            // 
+            // ilProfilePictures
+            // 
+            this.ilProfilePictures.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("ilProfilePictures.ImageStream")));
+            this.ilProfilePictures.TransparentColor = System.Drawing.Color.Transparent;
+            this.ilProfilePictures.Images.SetKeyName(0, "Checking");
+            this.ilProfilePictures.Images.SetKeyName(1, "HttpError");
+            this.ilProfilePictures.Images.SetKeyName(2, "unknown");
+            this.ilProfilePictures.Images.SetKeyName(3, "noimage");
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(753, 450);
+            this.ClientSize = new System.Drawing.Size(803, 570);
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.tabsControl);
+            this.DoubleBuffered = true;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "OpenXStreamLoader v0.1";
+            this.Text = "OpenXStreamLoader v";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.Form1_FormClosed);
             this.tabsControl.ResumeLayout(false);
             this.tpRecord.ResumeLayout(false);
@@ -986,8 +1124,8 @@
         private System.Windows.Forms.PictureBox pictureBox1;
         private System.Windows.Forms.Label label14;
         private System.Windows.Forms.Label label13;
-        private System.Windows.Forms.LinkLabel linkLabel1;
-        private System.Windows.Forms.Label label12;
+        private System.Windows.Forms.LinkLabel lbProductPage;
+        private System.Windows.Forms.Label lbVersion;
         private System.Windows.Forms.Label label11;
         private System.Windows.Forms.Label label15;
         private System.Windows.Forms.NumericUpDown nuHttpRequestDelay;
@@ -996,7 +1134,6 @@
         private System.Windows.Forms.Label label20;
         private System.Windows.Forms.Label label18;
         private System.Windows.Forms.NumericUpDown nuFavoritesUpdateInterval;
-        private System.Windows.Forms.Label label17;
         private System.Windows.Forms.Label label16;
         private System.Windows.Forms.ToolStripMenuItem openTaskUrlInBrowserToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showInFileExplorerToolStripMenuItem;
@@ -1006,6 +1143,19 @@
         private System.Windows.Forms.ToolStripMenuItem deleteFavToolStripMenuItem;
         private System.Windows.Forms.ColumnHeader columnHeader9;
         private System.Windows.Forms.Label label19;
+        private System.Windows.Forms.Label label22;
+        private System.Windows.Forms.Button btStreamlinkDefaultOptions;
+        private System.Windows.Forms.TextBox tbStreamlinkOptions;
+        private System.Windows.Forms.ToolStripMenuItem showImageorHoverWithCtrlPressedToolStripMenuItem;
+        private System.Windows.Forms.Timer tmrCheckForNewVersion;
+        private System.Windows.Forms.LinkLabel lbReleases;
+        private System.Windows.Forms.Label label23;
+        private System.Windows.Forms.Label label12;
+        private System.Windows.Forms.ImageList ilFavImages;
+        private System.Windows.Forms.ToolStripMenuItem copyURLToClipboardToolStripMenuItem;
+        private System.Windows.Forms.Label lbVersionInfo;
+        private System.Windows.Forms.LinkLabel lbStreamlinkOnlineHelp;
+        private System.Windows.Forms.ImageList ilProfilePictures;
     }
 }
 

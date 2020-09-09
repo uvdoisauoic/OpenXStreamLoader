@@ -1,5 +1,9 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
+using System.Windows.Forms;
+using System.Reflection;
+using System.Management;
 
 namespace OpenXStreamLoader
 {
@@ -90,6 +94,13 @@ namespace OpenXStreamLoader
             return int.TryParse(value, out result) ? result : defaultValue;
         }
 
+        public static float ToFloat32Def(this string value, float defaultValue)
+        {
+            float result;
+
+            return float.TryParse(value, out result) ? result : defaultValue;
+        }
+
         public static T Clamp<T>(this T val, T min, T max) where T : IComparable<T>
         {
             if (val.CompareTo(min) < 0) return min;
@@ -100,6 +111,40 @@ namespace OpenXStreamLoader
         public static int ToInt32(this Decimal d)
         {
             return Decimal.ToInt32(d);
+        }
+
+        public static void enableDoubleBuffering(this Control control, bool enable)
+        {
+            var method = typeof(Control).GetMethod("SetStyle", BindingFlags.Instance | BindingFlags.NonPublic);
+
+            method.Invoke(control, new object[] { ControlStyles.OptimizedDoubleBuffer, enable });
+        }
+
+        public static void killProcessTree(int pid)
+        {
+            if (pid == 0)
+            {
+                return;
+            }
+
+            ManagementObjectSearcher searcher = new ManagementObjectSearcher("Select * From Win32_Process Where ParentProcessID=" + pid);
+            ManagementObjectCollection moc = searcher.Get();
+
+            foreach (ManagementObject mo in moc)
+            {
+                killProcessTree(Convert.ToInt32(mo["ProcessID"]));
+            }
+
+            try
+            {
+                Process proc = Process.GetProcessById(pid);
+
+                proc.Kill();
+            }
+            catch (ArgumentException)
+            {
+
+            }
         }
     }
 }
