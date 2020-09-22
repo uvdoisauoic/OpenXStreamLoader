@@ -4,6 +4,9 @@ using System.IO;
 using System.Windows.Forms;
 using System.Reflection;
 using System.Management;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.Runtime.InteropServices.WindowsRuntime;
 
 namespace OpenXStreamLoader
 {
@@ -144,6 +147,58 @@ namespace OpenXStreamLoader
             catch (ArgumentException)
             {
 
+            }
+        }
+
+        public static bool ToBoolean(this string str)
+        {
+            return str == "1" || str.ToLower() == "true";
+        }
+
+        public static bool isBitmapsEqual(Bitmap b1, Bitmap b2)
+        {
+            if (b1 == null || b2 == null || b1.Size != b2.Size)
+            {
+                return false;
+            }
+
+            var bd1 = b1.LockBits(new Rectangle(new Point(0, 0), b1.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+            var bd2 = b2.LockBits(new Rectangle(new Point(0, 0), b2.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+
+            try
+            {
+                unsafe
+                {
+                    // Processing only upper left half width half height
+
+                    const int noiseError = 3;
+
+                    byte* row1 = (byte*)bd1.Scan0.ToPointer();
+                    byte* row2 = (byte*)bd2.Scan0.ToPointer();
+                    int widthBytes2 = b1.Size.Width * 4 / 2;
+                    int height2 = b1.Size.Height / 2;
+                    int difference = 0;
+                    int stride = bd1.Stride / 4;
+                    int threshold = b1.Size.Width / 2 * height2 * noiseError;
+
+                    for (int j = 0; j < height2; j++)
+                    {
+                        for (int i = 0; i < widthBytes2; i += 4) // only red component for optimization
+                        {
+                            difference += Math.Abs(row1[i] - row2[i]);
+                        }
+
+                        row1 += stride;
+                        row2 += stride;
+                    }
+
+                    return difference < threshold;
+                }
+            }
+            finally
+            {
+                b1.UnlockBits(bd1);
+                b2.UnlockBits(bd2);
             }
         }
     }

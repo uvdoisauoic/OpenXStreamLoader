@@ -1,7 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Configuration>
-  <Settings HttpRequestDelay="5000" FavoritesUpdateInterval="300" WaitingTaskInterval="60">
+  <Settings HttpRequestDelay="300" FavoritesUpdateInterval="60" WaitingTaskInterval="30">
     <StreamlinkExe>Streamlink_Portable\Streamlink.exe</StreamlinkExe>
-    <StreamlinkOptions>--hls-timeout 120 --hls-playlist-reload-attempts 20 --hls-segment-timeout 90 --hds-segment-threads 8 --hls-segment-threads 8 --hds-timeout 120 --hds-segment-timeout 90 --hds-segment-attempts 20</StreamlinkOptions>
   </Settings>
 </Configuration>

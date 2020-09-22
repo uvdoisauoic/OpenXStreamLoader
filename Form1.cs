@@ -18,10 +18,18 @@ namespace OpenXStreamLoader
 {
     public partial class Form1 : Form
     {
+        internal class TaskConfiguration
+        {
+            public bool _waitForOnline;
+            public string _quality;
+            public string _fileNameTemplate;
+        }
+
         internal class TaskData
         {
             public Task _task;
             public ListViewItem _listItem;
+            public TaskConfiguration _config;
             public string _consoleOutput;
         };
 
@@ -33,12 +41,11 @@ namespace OpenXStreamLoader
 
         public enum OnlineStatus
         {
-            Unknown,
-            Checking,
+            Offline,
             Public,
             Private,
+            Hidden,
             Away,
-            Offline,
             Error
         }
 
@@ -49,7 +56,9 @@ namespace OpenXStreamLoader
             public Image _profileImage;
         }
 
-        private readonly float _version = 0.2f;
+        private readonly float _version = 0.3f;
+        private readonly int _trayBalloonTimeout = 5000; // ms
+        private int _httpRequestMethod1Delay = 1000; // ms
         private readonly string _streamlinkDefaultOptions = "--hls-timeout 120 --hls-playlist-reload-attempts 20 --hls-segment-timeout 90 --hds-segment-threads 8 --hls-segment-threads 8 --hds-timeout 120 --hds-segment-timeout 90 --hds-segment-attempts 20";
         private readonly object _onlineCheckQueueLock = new object();
 
@@ -62,9 +71,11 @@ namespace OpenXStreamLoader
         private Dictionary<string, FavoriteData> _favoritesMap;
         private Dispatcher _dispatcher;
         private CookieContainer _cookies;
-        private long _sizeOffline = -1;
         private PreviewForm _previewForm;
         private bool _showingProfilePictures = false;
+        private bool _appClosing = false;
+        private Bitmap _offlineImage;
+        private DateTime _nextHttpRequestTime = DateTime.Now;
 
         public Form1()
         {
@@ -83,21 +94,47 @@ namespace OpenXStreamLoader
 
             ServicePointManager.Expect100Continue = true;
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-            //initWebRequest();
+
             setVersion();
-            loadSettings();
+            loadConfiguration();
             tmrFavoritesStatusCheck.Interval = _settings._favoritesUpdateInterval * 1000;
             tmrFavoritesStatusCheck.Enabled = true;
+
+            initOnlineCheck();
 
             _onlineCheckIsRunning = true;
             _onlineCheckThread = new Thread(new ThreadStart(onlineCheckProc));
             _onlineCheckThread.Start();
         }
 
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            if (_settings._recordOnStart)
+            {
+                startAllTasks();
+            }
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (_settings._minimizeToTray)
+            {
+                if (!_appClosing)
+                {
+                    e.Cancel = true;
+                    Hide();
+                }
+            }
+            else
+            {
+                e.Cancel = MessageBox.Show("Close application?", "OpenXStreamLoader", MessageBoxButtons.YesNo) == DialogResult.No;
+            }
+        }
+
         private void Form1_FormClosed(object sender, FormClosedEventArgs e)
         {
             stopOnlineCheckThread();
-            saveSettings();
+            saveConfiguration();
         }
 
         private void setVersion()
@@ -108,10 +145,10 @@ namespace OpenXStreamLoader
             lbVersion.Text += versionString;
         }
 
-        private void loadSettings()
+        private void loadConfiguration()
         {
             setDefaultSettings();
-            loadSettingsFromXml();
+            loadConfigurationFromXml();
             applySettings();
         }
 
@@ -121,9 +158,12 @@ namespace OpenXStreamLoader
             _settings._streamlinkOptions = _streamlinkDefaultOptions;
             _settings._defaultRecordsPath = "";
             _settings._browserPath = "";
-            _settings._httpRequestDelay = 5000;
-            _settings._favoritesUpdateInterval = 300;
-            _settings._waitingTaskInterval = 60;
+            _settings._httpRequestDelay = 300;
+            _settings._favoritesUpdateInterval = 60;
+            _settings._waitingTaskInterval = 30;
+            _settings._minimizeToTray = false;
+            _settings._showOnlineNotification = true;
+            _settings._recordOnStart = false;
         }
 
         private void applySettings()
@@ -131,21 +171,29 @@ namespace OpenXStreamLoader
             tbStreamlinkExePath.Text = _settings._streamlinkExePath;
             tbStreamlinkOptions.Text = _settings._streamlinkOptions;
             tbDefaultRecordsPath.Text = _settings._defaultRecordsPath;
-            tbDefaultRecordsPath.Text = _settings._defaultRecordsPath;
+            tbBrowserPath.Text = _settings._browserPath;
             nuHttpRequestDelay.Value = _settings._httpRequestDelay;
-
             nuFavoritesUpdateInterval.Value = _settings._favoritesUpdateInterval;
-            tmrFavoritesStatusCheck.Interval = _settings._favoritesUpdateInterval * 1000;
-
             nuWaitingTaskInterval.Value = _settings._waitingTaskInterval;
+            cbMinimizeToTray.Checked = _settings._minimizeToTray;
+            cbOnlineNotification.Checked = _settings._showOnlineNotification;
+            cbRecordOnStart.Checked = _settings._recordOnStart;
+
+            trayIcon.Visible = _settings._minimizeToTray || _settings._showOnlineNotification;
+            tmrFavoritesStatusCheck.Interval = _settings._favoritesUpdateInterval * 1000;
         }
 
-        private void loadSettingsFromXml()
+        private void loadConfigurationFromXml()
         {
             XmlDocument doc = new XmlDocument();
 
             try
             {
+                if (!File.Exists("config.xml"))
+                {
+                    return;
+                }
+
                 doc.Load("config.xml");
 
                 if (doc.GetElementsByTagName("Configuration").Count == 0)
@@ -155,6 +203,7 @@ namespace OpenXStreamLoader
 
                 var configurationElement = doc.GetElementsByTagName("Configuration")[0];
                 var settingsElement = configurationElement["Settings"];
+                var recordsElement = configurationElement["Records"];
                 var lastViewedElement = configurationElement["LastViewed"];
                 var favoritesElement = configurationElement["Favorites"];
 
@@ -198,6 +247,66 @@ namespace OpenXStreamLoader
                     _settings._waitingTaskInterval = settingsElement.Attributes["WaitingTaskInterval"].InnerText.ToInt32Def(60).Clamp(nuWaitingTaskInterval.Minimum.ToInt32(), nuWaitingTaskInterval.Maximum.ToInt32());
                 }
 
+                if (settingsElement.Attributes["Quality"] != null)
+                {
+                    cbQuality.Text = settingsElement.Attributes["Quality"].InnerText.Trim();
+                }
+
+                if (settingsElement.Attributes["MinimizeToTray"] != null)
+                {
+                    _settings._minimizeToTray = settingsElement.Attributes["MinimizeToTray"].InnerText.ToBoolean();
+                }
+
+                if (settingsElement.Attributes["ShowOnlineNotification"] != null)
+                {
+                    _settings._showOnlineNotification = settingsElement.Attributes["ShowOnlineNotification"].InnerText.ToBoolean();
+                }
+
+                if (settingsElement.Attributes["RecordOnStart"] != null)
+                {
+                    _settings._recordOnStart = settingsElement.Attributes["RecordOnStart"].InnerText.ToBoolean();
+                }
+
+                if (settingsElement.Attributes["HttpRequestMethod1Delay"] != null)
+                {
+                    _httpRequestMethod1Delay = settingsElement.Attributes["HttpRequestMethod1Delay"].InnerText.ToInt32Def(3000);
+                }
+
+                if (recordsElement != null)
+                {
+                    var recordElements = recordsElement.GetElementsByTagName("*");
+
+                    for (int i = 0; i < recordElements.Count; i++)
+                    {
+                        var recordElement = recordElements[i];
+
+                        if (recordElement.Attributes["Url"] != null)
+                        {
+                            string url = recordElement.Attributes["Url"].InnerText;
+                            bool waitForOnline = true;
+                            string quality = "best";
+                            string fileNameTemplate = "";
+
+                            if (recordElement.Attributes["WaitForOnline"] != null)
+                            {
+                                waitForOnline = recordElement.Attributes["WaitForOnline"].InnerText.ToBoolean();
+                            }
+
+                            if (recordElement.Attributes["Quality"] != null)
+                            {
+                                quality = recordElement.Attributes["Quality"].InnerText;
+                            }
+
+                            if (recordElement.Attributes["FileNameTemplate"] != null)
+                            {
+                                fileNameTemplate = recordElement.Attributes["FileNameTemplate"].InnerText;
+                            }
+
+                            addTask(url, quality, fileNameTemplate);
+                        }
+                    }
+                }
+
                 if (lastViewedElement != null)
                 {
                     var lastViewedElements = lastViewedElement.GetElementsByTagName("*");
@@ -231,9 +340,9 @@ namespace OpenXStreamLoader
                                         profileImage = Image.FromStream(stream);
                                     }
                                 }
-                                catch (Exception)
+                                catch
                                 {
-
+                                    profileImage = null;
                                 }
                             }
 
@@ -248,18 +357,20 @@ namespace OpenXStreamLoader
             }
         }
 
-        private void saveSettings()
+        private void saveConfiguration()
         {
             XmlDocument doc = new XmlDocument();
             XmlWriterSettings settings = new XmlWriterSettings();
 
             var configurationElement = doc.CreateElement("Configuration");
             var settingsElement = doc.CreateElement("Settings");
+            var recordsElement = doc.CreateElement("Records");
             var lastViewedElement = doc.CreateElement("LastViewed");
             var favoritesElement = doc.CreateElement("Favorites");
 
             doc.AppendChild(configurationElement);
             configurationElement.AppendChild(settingsElement);
+            configurationElement.AppendChild(recordsElement);
             configurationElement.AppendChild(lastViewedElement);
             configurationElement.AppendChild(favoritesElement);
 
@@ -281,6 +392,22 @@ namespace OpenXStreamLoader
             settingsElement.SetAttribute("HttpRequestDelay", _settings._httpRequestDelay.ToString());
             settingsElement.SetAttribute("FavoritesUpdateInterval", _settings._favoritesUpdateInterval.ToString());
             settingsElement.SetAttribute("WaitingTaskInterval", _settings._waitingTaskInterval.ToString());
+            settingsElement.SetAttribute("Quality", cbQuality.Text.Trim());
+            settingsElement.SetAttribute("MinimizeToTray", _settings._minimizeToTray.ToString());
+            settingsElement.SetAttribute("ShowOnlineNotification", _settings._showOnlineNotification.ToString());
+            settingsElement.SetAttribute("RecordOnStart", _settings._recordOnStart.ToString());
+
+            foreach (var taskP in _tasks)
+            {
+                var element = doc.CreateElement(getIdFromUrl(taskP.Key));
+
+                element.SetAttribute("Url", taskP.Key);
+                element.SetAttribute("WaitForOnline", taskP.Value._config._waitForOnline.ToString());
+                element.SetAttribute("Quality", taskP.Value._config._quality);
+                element.SetAttribute("FileNameTemplate", taskP.Value._config._fileNameTemplate);
+
+                recordsElement.AppendChild(element);
+            }
 
             for (int i = 0; i < cbId.Items.Count; i++)
             {
@@ -362,12 +489,30 @@ namespace OpenXStreamLoader
                     }
                 }
             }
-            catch (Exception)
+            catch
             {
                 lbVersionInfo.Text = "Failed to retrieve latest version info.";
             }
 
             return false;
+        }
+
+        private void initOnlineCheck()
+        {
+            try
+            {
+                using (var response = (HttpWebResponse)creatWebRequest("https://roomimg.stream.highwebmedia.com/ri/_________.jpg").GetResponse())
+                {
+                    if (response.StatusCode == HttpStatusCode.OK && response.ContentType == "image/jpeg")
+                    {
+                        _offlineImage = new Bitmap(response.GetResponseStream());
+                    }
+                }
+            }
+            catch
+            {
+
+            }
         }
 
         private void btChooseStreamlinkExe_Click(object sender, EventArgs e)
@@ -424,10 +569,20 @@ namespace OpenXStreamLoader
                 return;
             }
 
-            cbId.Text = url; //trimmed
             addLastViewed(url);
 
-            string fileNameTemplate = getFinalFileNameTemplate();
+            var task = addTask(url, quality, getFinalFileNameTemplate());
+
+            task.Start();
+        }
+
+        private Task addTask(string url, string quality, string fileNameTemplate)
+        {
+            if (_tasks.ContainsKey(url))
+            {
+                return null;
+            }
+
             string fullPath = Utils.getFullPathWithEndingSlash(fileNameTemplate);
 
             if (!String.IsNullOrEmpty(fullPath))
@@ -438,7 +593,7 @@ namespace OpenXStreamLoader
             ListViewItem listItem = new ListViewItem(url);
 
             listItem.SubItems.Add(cbOnlineCheck.Checked ? "✓" : "");
-            listItem.SubItems.Add("<unknown>");
+            listItem.SubItems.Add("Stopped");
             listItem.SubItems.Add(quality);
             listItem.SubItems.Add("");
             listItem.SubItems.Add("");
@@ -450,10 +605,16 @@ namespace OpenXStreamLoader
             _tasks.Add(url, new TaskData()
             {
                 _task = task,
-                _listItem = listItem
+                _listItem = listItem,
+                _config = new TaskConfiguration()
+                {
+                    _waitForOnline = cbOnlineCheck.Checked,
+                    _quality = quality,
+                    _fileNameTemplate = fileNameTemplate
+                }
             });
 
-            task.Start();
+            return task;
         }
 
         private void cbId_SelectedIndexChanged(object sender, EventArgs e)
@@ -599,6 +760,17 @@ namespace OpenXStreamLoader
                     break;
                 }
 
+                case Task.TaskState.Stopped:
+                {
+                    item.SubItems[2].Text = "Stopped";
+                    item.SubItems[4].Text = getDurationString(status.Created);
+                    item.SubItems[5].Text = Utils.formatBytes(status.FileSize);
+                    item.SubItems[6].Text = status.FileName;
+                    item.BackColor = SystemColors.Window;
+
+                    break;
+                }
+
                 case Task.TaskState.StartProcessError:
                 {
                     item.SubItems[2].Text = "Error";
@@ -650,7 +822,7 @@ namespace OpenXStreamLoader
 
             ListViewItem item = new ListViewItem(url);
 
-            _favoritesMap.Add(url, new FavoriteData { _item = item, _status = OnlineStatus.Checking, _profileImage = profileImage });
+            _favoritesMap.Add(url, new FavoriteData { _item = item, _status = OnlineStatus.Offline, _profileImage = profileImage });
             item.ImageKey = "Checking";
             item.SubItems.Add("checking...");
             lvFavorites.Items.Add(item);
@@ -678,61 +850,20 @@ namespace OpenXStreamLoader
             var data = _favoritesMap[url];
             var item = data._item;
 
+            if (_settings._showOnlineNotification && data._status != OnlineStatus.Public && onlineStatus == OnlineStatus.Public)
+            {
+                trayIcon.Tag = url;
+                trayIcon.ShowBalloonTip(_trayBalloonTimeout, "OpenXStreamLoader", "\"" + getIdFromUrl(url) + "\" is online now", ToolTipIcon.Info);
+            }
+
             data._status = onlineStatus;
             lvFavorites.BeginUpdate();
-            item.BackColor = SystemColors.Window;
-            item.ImageKey = "offline";
+            setItemStatusImage(item, onlineStatus);
 
-            switch (onlineStatus)
+            if (onlineStatus == OnlineStatus.Public)
             {
-                case OnlineStatus.Public:
-                {
-                    item.SubItems[1].Text = "Public";
-                    item.BackColor = Color.Lime;
-                    updateFavoriteImage(url);
+                updateFavoriteImage(url);
 
-                    break;
-                }
-
-                case OnlineStatus.Private:
-                {
-                    item.SubItems[1].Text = "Private";
-                    item.BackColor = Color.Gold;
-
-                    break;
-                }
-
-                case OnlineStatus.Away:
-                {
-                    item.SubItems[1].Text = "Away";
-
-                    break;
-                }
-
-                case OnlineStatus.Offline:
-                {
-                    item.SubItems[1].Text = "Offline";
-
-                    break;
-                }
-
-                case OnlineStatus.Error:
-                {
-                    item.SubItems[1].Text = "Http error";
-                    item.BackColor = Color.Red;
-                    item.ImageKey = "HttpError";
-
-                    break;
-                }
-
-                case OnlineStatus.Unknown:
-                default:
-                {
-                    item.SubItems[1].Text = "<unknown>";
-                    item.BackColor = Color.LightSteelBlue;
-
-                    break;
-                }
             }
 
             lvFavorites.EndUpdate();
@@ -766,13 +897,13 @@ namespace OpenXStreamLoader
                     }
                     else
                     {
-                        data._item.ImageKey = "unknown";
+                        data._item.ImageKey = "Error";
                     }
                 }
             }
-            catch (Exception)
+            catch
             {
-                data._item.ImageKey = "HttpError";
+                data._item.ImageKey = "Error";
             }
         }
 
@@ -784,7 +915,7 @@ namespace OpenXStreamLoader
             }
         }
 
-        private void clearFavoritesStatus()
+        private void setAllChecking()
         {
             lvFavorites.BeginUpdate();
 
@@ -796,11 +927,6 @@ namespace OpenXStreamLoader
                 item.ImageKey = "Checking";
                 item.SubItems[1].Text = "checking...";
                 item.BackColor = SystemColors.Window;
-
-                if (_favoritesMap.ContainsKey(url))
-                {
-                    _favoritesMap[url]._status = OnlineStatus.Checking;
-                }
             }
 
             lvFavorites.EndUpdate();
@@ -957,13 +1083,18 @@ namespace OpenXStreamLoader
 
             if (status == OnlineStatus.Public)
             {
-                _tasks[url]._task.Start();
+                _tasks[url]._task.ResumeOnline();
             }
         }
 
         private OnlineStatus requestUrlOnlineStatus(string url)
         {
-            OnlineStatus result = OnlineStatus.Unknown;
+            return requestUrlOnlineStatusMethod2(url);
+        }
+
+        private OnlineStatus requestUrlOnlineStatusMethod1(string url)
+        {
+            OnlineStatus result = OnlineStatus.Offline;
 
             try
             {
@@ -982,6 +1113,10 @@ namespace OpenXStreamLoader
                     {
                         result = OnlineStatus.Private;
                     }
+                    else if (statusString == "hidden")
+                    {
+                        result = OnlineStatus.Hidden;
+                    }
                     else if (statusString == "away")
                     {
                         result = OnlineStatus.Away;
@@ -992,7 +1127,7 @@ namespace OpenXStreamLoader
                     }
                 }
             }
-            catch (Exception)
+            catch
             {
                 result = OnlineStatus.Error;
             }
@@ -1011,7 +1146,25 @@ namespace OpenXStreamLoader
                     if (response.StatusCode == HttpStatusCode.OK &&
                         response.ContentType == "image/jpeg")
                     {
-                        return response.ContentLength == _sizeOffline ? OnlineStatus.Offline : OnlineStatus.Public;
+                        if (!Utils.isBitmapsEqual(_offlineImage, new Bitmap(response.GetResponseStream())))
+                        {
+                            var waiting = (DateTime.Now - _nextHttpRequestTime).TotalMilliseconds;
+
+                            if (waiting < 0.0)
+                            {
+                                System.Threading.Thread.Sleep(-Convert.ToInt32(waiting));
+                            }
+
+                            var result = requestUrlOnlineStatusMethod1(url);
+
+                            _nextHttpRequestTime = DateTime.Now.AddMilliseconds(_httpRequestMethod1Delay);
+
+                            return result;
+                        }
+                        else
+                        {
+                            return OnlineStatus.Offline;
+                        }
                     }
                     else
                     {
@@ -1019,7 +1172,7 @@ namespace OpenXStreamLoader
                     }
                 }
             }
-            catch (Exception)
+            catch
             {
                 return OnlineStatus.Error;
             }
@@ -1027,7 +1180,7 @@ namespace OpenXStreamLoader
 
         private void updateNowToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            clearFavoritesStatus();
+            setAllChecking();
             updateFavoritesStatus();
         }
 
@@ -1184,12 +1337,6 @@ namespace OpenXStreamLoader
                 item.ImageKey = "Checking";
                 item.SubItems[1].Text = "checking...";
                 item.BackColor = SystemColors.Window;
-
-                if (_favoritesMap.ContainsKey(url))
-                {
-                    _favoritesMap[url]._status = OnlineStatus.Checking;
-                }
-
                 queueOnlineStatusCheck(url, OnlineCheckPriority.High);
             }
         }
@@ -1223,6 +1370,8 @@ namespace OpenXStreamLoader
             showInFileExplorerToolStripMenuItem.Enabled = isItemClicked;
             addTaskToFavoritesToolStripMenuItem.Enabled = isItemClicked;
             copyURLToInputFieldToolStripMenuItem.Enabled = isItemClicked;
+            startToolStripMenuItem.Enabled = isItemClicked;
+            stopToolStripMenuItem.Enabled = isItemClicked;
             deleteToolStripMenuItem.Enabled = isItemClicked;
             viewStreamLinkOutputToolStripMenuItem.Enabled = isItemClicked;
         }
@@ -1281,6 +1430,41 @@ namespace OpenXStreamLoader
             Clipboard.SetText(lvTasks.SelectedItems[0].Text);
         }
 
+        private void startToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (lvTasks.SelectedItems.Count == 0)
+            {
+                return;
+            }
+
+            string url = lvTasks.SelectedItems[0].Text;
+
+            if (_tasks.ContainsKey(url))
+            {
+                _tasks[url]._task.Start();
+            }
+        }
+
+        private void startAllToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            startAllTasks();
+        }
+
+        private void stopToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (lvTasks.SelectedItems.Count == 0)
+            {
+                return;
+            }
+
+            string url = lvTasks.SelectedItems[0].Text;
+
+            if (_tasks.ContainsKey(url))
+            {
+                _tasks[url]._task.Stop();
+            }
+        }
+
         private void deleteToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (lvTasks.SelectedItems.Count == 0)
@@ -1301,6 +1485,22 @@ namespace OpenXStreamLoader
                 _tasks.Remove(url);
                 lvTasks.Items.Remove(lvTasks.SelectedItems[0]);
             }
+        }
+
+        private void deleteAllToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (MessageBox.Show("Delete all tasks?", "OpenXStreamLoader", MessageBoxButtons.YesNo) == DialogResult.No)
+            {
+                return;
+            }
+
+            foreach (var task in _tasks)
+            {
+                task.Value._task.Dispose();
+                lvTasks.Items.Remove(task.Value._listItem);
+            }
+
+            _tasks.Clear();
         }
 
         private void openFileToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1356,11 +1556,6 @@ namespace OpenXStreamLoader
         private void tabPage2_Enter(object sender, EventArgs e)
         {
             ActiveControl = lvFavorites;
-        }
-
-        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            e.Cancel = MessageBox.Show("Close application?", "OpenXStreamLoader", MessageBoxButtons.YesNo) == DialogResult.No;
         }
 
         private void btStreamlinkDefaultOptions_Click(object sender, EventArgs e)
@@ -1426,7 +1621,7 @@ namespace OpenXStreamLoader
                 }
                 else
                 {
-                    item.ImageKey = "noimage";
+                    item.ImageKey = "NoImage";
                 }
             }
 
@@ -1442,49 +1637,71 @@ namespace OpenXStreamLoader
             {
                 if (_favoritesMap.ContainsKey(item.Text))
                 {
-                    var data = _favoritesMap[item.Text];
-
-                    switch (data._status)
-                    {
-                        case OnlineStatus.Public:
-                        {
-                            item.ImageKey = item.Text;
-
-                            break;
-                        }
-
-                        case OnlineStatus.Checking:
-                        {
-                            item.ImageKey = "Checking";
-
-                            break;
-                        }
-
-                        case OnlineStatus.Error:
-                        {
-                            item.ImageKey = "HttpError";
-
-                            break;
-                        }
-
-                        case OnlineStatus.Unknown:
-                        {
-                            item.ImageKey = "unknown";
-
-                            break;
-                        }
-
-                        default:
-                        {
-                            item.ImageKey = "offline";
-
-                            break;
-                        }
-                    }
+                    setItemStatusImage(item, _favoritesMap[item.Text]._status);
                 }
             }
 
             lvFavorites.EndUpdate();
+        }
+
+        private void setItemStatusImage(ListViewItem item, OnlineStatus status)
+        {
+            switch (status)
+            {
+                case OnlineStatus.Public:
+                {
+                    item.SubItems[1].Text = "Public";
+                    item.ImageKey = item.Text;
+                    item.BackColor = Color.Lime;
+
+                    break;
+                }
+
+                case OnlineStatus.Private:
+                {
+                    item.SubItems[1].Text = "Private";
+                    item.ImageKey = "Private";
+                    item.BackColor = Color.Gold;
+
+                    break;
+                }
+
+                case OnlineStatus.Hidden:
+                {
+                    item.SubItems[1].Text = "Hidden";
+                    item.ImageKey = "Hidden";
+                    item.BackColor = Color.Gold;
+
+                    break;
+                }
+
+                case OnlineStatus.Away:
+                {
+                    item.SubItems[1].Text = "Away";
+                    item.ImageKey = "Away";
+                    item.BackColor = SystemColors.Window;
+
+                    break;
+                }
+
+                case OnlineStatus.Error:
+                {
+                    item.SubItems[1].Text = "AErrorway";
+                    item.ImageKey = "Error";
+                    item.BackColor = Color.Red;
+
+                    break;
+                }
+
+                default:
+                {
+                    item.SubItems[1].Text = "Offline";
+                    item.ImageKey = "Offline";
+                    item.BackColor = SystemColors.Window;
+
+                    break;
+                }
+            }
         }
 
         private void updateImageList(ImageList imageList, string key, Image image)
@@ -1496,6 +1713,73 @@ namespace OpenXStreamLoader
             else
             {
                 imageList.Images.Add(key, image);
+            }
+        }
+
+        private void openToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Show();
+            Activate();
+        }
+
+        private void trayIcon_DoubleClick(object sender, EventArgs e)
+        {
+            Show();
+            Activate();
+        }
+
+        private void quitToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            _appClosing = true;
+            Close();
+        }
+
+        private void cbMinimizeToTray_CheckedChanged(object sender, EventArgs e)
+        {
+            _settings._minimizeToTray = cbMinimizeToTray.Checked;
+            trayIcon.Visible = _settings._minimizeToTray || _settings._showOnlineNotification;
+        }
+
+        private void cbOnlineNotification_CheckedChanged(object sender, EventArgs e)
+        {
+            _settings._showOnlineNotification = cbOnlineNotification.Checked;
+            trayIcon.Visible = _settings._minimizeToTray || _settings._showOnlineNotification;
+        }
+
+        private void cbRecordOnStart_CheckedChanged(object sender, EventArgs e)
+        {
+            _settings._recordOnStart = cbRecordOnStart.Checked;
+        }
+
+        private void trayIcon_BalloonTipClicked(object sender, EventArgs e)
+        {
+            Show();
+            Activate();
+            tabsControl.SelectTab(1);
+
+            try
+            {
+                string url = (sender as NotifyIcon).Tag as string;
+
+                if (_favoritesMap.ContainsKey(url))
+                {
+                    var data = _favoritesMap[url];
+
+                    data._item.Selected = true;
+                    lvFavorites.EnsureVisible(lvFavorites.Items.IndexOf(data._item));
+                }
+            }
+            catch
+            {
+
+            }
+        }
+
+        private void startAllTasks()
+        {
+            foreach (var task in _tasks)
+            {
+                task.Value._task.Start();
             }
         }
     }

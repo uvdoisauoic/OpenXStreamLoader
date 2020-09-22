@@ -15,5 +15,8 @@ namespace OpenXStreamLoader
         public int _httpRequestDelay;
         public int _favoritesUpdateInterval;
         public int _waitingTaskInterval;
+        public bool _minimizeToTray;
+        public bool _showOnlineNotification;
+        public bool _recordOnStart;
     }
 }

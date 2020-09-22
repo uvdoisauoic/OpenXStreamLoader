@@ -3,6 +3,8 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+assets
+todo.txt
 /Streamlink_Portable
 
 # User-specific files

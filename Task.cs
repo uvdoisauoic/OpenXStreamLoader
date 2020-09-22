@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Timers;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace OpenXStreamLoader
 {
@@ -9,7 +10,7 @@ namespace OpenXStreamLoader
     {
         public enum TaskState
         {
-            Unknown,
+            Stopped,
             Waiting,
             InProgress,
             Finished,
@@ -27,7 +28,7 @@ namespace OpenXStreamLoader
 
         internal class Status : IStatusView
         {
-            public TaskState State { get; set; } = TaskState.Unknown;
+            public TaskState State { get; set; } = TaskState.Stopped;
             public string FileName { get; set; }
             public long FileSize { get; set; } = 0;
             public DateTime Created { get; set; }
@@ -55,7 +56,7 @@ namespace OpenXStreamLoader
         private int _waitingTaskInterval;
         GetFinalFileNameFromTemplate _getFinalFileNameFromTemplate;
         private Status _status;
-        private bool _processExiting = false;
+        private bool _processExiting;
 
         public Task(string url, string quality, bool performOnlineCheck, string executablePath, string streamlinkOptions, string outputFileNameTemplate, StatusChangedCallback statusChanged, CheckOnlineCallback checkOnline, GetFinalFileNameFromTemplate getFinalFileNameFromTemplate, int waitingTaskInterval)
         {
@@ -75,12 +76,12 @@ namespace OpenXStreamLoader
             _onlineCheckTimer = new System.Timers.Timer();
             _onlineCheckTimer.Enabled = false;
             _onlineCheckTimer.Interval = _waitingTaskInterval * 1000; // ms
-            _onlineCheckTimer.Elapsed += new ElapsedEventHandler(_onOnlineCheckTimer);
+            _onlineCheckTimer.Elapsed += new ElapsedEventHandler(onOnlineCheckTimer);
 
             _statusCheckTimer = new System.Timers.Timer();
             _statusCheckTimer.Enabled = false;
             _statusCheckTimer.Interval = 3 * 1000; // ms
-            _statusCheckTimer.Elapsed += new ElapsedEventHandler(_onStatusCheckTimer);
+            _statusCheckTimer.Elapsed += new ElapsedEventHandler(onStatusCheckTimer);
         }
 
         ~Task()
@@ -97,6 +98,28 @@ namespace OpenXStreamLoader
 
         public void Start()
         {
+            start();
+        }
+
+        public void Stop()
+        {
+            _onlineCheckTimer.Enabled = false;
+            _statusCheckTimer.Enabled = false;
+            stopProcess();
+            _status.State = TaskState.Stopped;
+            reportStatus();
+        }
+
+        public void ResumeOnline()
+        {
+            if (_status.State == TaskState.Waiting)
+            {
+                start();
+            }
+        }
+
+        private void start()
+        {
             try
             {
                 if (_process != null && !_process.HasExited)
@@ -104,7 +127,7 @@ namespace OpenXStreamLoader
                     return;
                 }
             }
-            catch (Exception)
+            catch
             {
 
             }
@@ -132,6 +155,7 @@ namespace OpenXStreamLoader
 
             try
             {
+                _processExiting = false;
                 _status.State = TaskState.InProgress;
                 _process.Start();
                 _process.BeginOutputReadLine();
@@ -158,7 +182,7 @@ namespace OpenXStreamLoader
                     return;
                 }
             }
-            catch (Exception)
+            catch
             {
                 return;
             }
@@ -174,13 +198,13 @@ namespace OpenXStreamLoader
                         return;
                     }
 
-                    //Didn't work (main process shut down itself occasionally):
+                    //Didn't work (main process shuts down itself occasionally):
                     //https://stackoverflow.com/questions/2055753/how-to-gracefully-terminate-a-process
                     //https://github.com/gapotchenko/Gapotchenko.FX/blob/1accd5c03a310a925939ee55a9bd3055dadb4baa/Source/Gapotchenko.FX.Diagnostics.Process/ProcessExtensions.End.cs#L247-L328
 
                     Utils.killProcessTree(id);
                 }
-                catch (Exception)
+                catch
                 {
 
                 }
@@ -190,7 +214,7 @@ namespace OpenXStreamLoader
             {
                 _process.Dispose();
             }
-            catch (Exception)
+            catch
             {
 
             }
@@ -229,12 +253,12 @@ namespace OpenXStreamLoader
             reportStatus();
         }
 
-        private void _onOnlineCheckTimer(object source, ElapsedEventArgs e)
+        private void onOnlineCheckTimer(object source, ElapsedEventArgs e)
         {
             _checkOnline(_url);
         }
 
-        private void _onStatusCheckTimer(object source, ElapsedEventArgs e)
+        private void onStatusCheckTimer(object source, ElapsedEventArgs e)
         {
             _status.FileSize = getFileSize();
             reportStatus();
@@ -262,7 +286,7 @@ namespace OpenXStreamLoader
             {
                 return new FileInfo(_fileName).Length;
             }
-            catch (Exception)
+            catch
             {
                 return -1;
             }
